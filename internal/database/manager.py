@@ -20,11 +20,11 @@ class AsyncDbManager:
         if self.__engine or self.__session:
             return
 
-        self.__engine = create_async_engine(settings.database_url)
+        self.__engine = create_async_engine(str(settings.database_url))
         self.__session = async_sessionmaker(self.__engine, expire_on_commit=False)
 
     async def bootstrap(self) -> None:
-        async with self.__session.begin() as conn:
+        async with self.__engine.begin() as conn:
             await conn.run_sync(AbstractAsyncEntity.metadata.create_all)
 
     @classmethod
