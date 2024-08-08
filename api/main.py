@@ -11,9 +11,9 @@ DATABASE_MANAGER = AsyncDbManager(_api_settings_builder())
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Start app batteries")
-    DATABASE_MANAGER.bootstrap()
+    await DATABASE_MANAGER.bootstrap()
     yield
-    DATABASE_MANAGER.dispose()
+    await DATABASE_MANAGER.dispose()
     print("Finish app batteries")
 
 
