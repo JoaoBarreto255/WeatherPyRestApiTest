@@ -9,6 +9,7 @@ USERS_ROUTER = APIRouter()
 async def create_user():
     return {"user_id": 1}
 
+
 @USERS_ROUTER.get("/users/{user_id}")
 async def get_user(user_id: int):
     return {"user_id": user_id}
