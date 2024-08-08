@@ -3,17 +3,21 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from routers.users import USERS_ROUTER
+from api.routers.users import USERS_ROUTER
+from internal.database.manager import AsyncDbManager
+from internal.settings import _api_settings_builder
 
-
+DATABASE_MANAGER = AsyncDbManager(_api_settings_builder())
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Start app batteries")
+    DATABASE_MANAGER.bootstrap()
     yield
+    DATABASE_MANAGER.dispose()
     print("Finish app batteries")
 
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.include_router(USERS_ROUTER)
 
 if __name__ == "__main__":

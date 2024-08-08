@@ -11,10 +11,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ApiSettings(BaseSettings):
     app_env: str = "dev"
     database_url: AnyUrl
-    ampq_dsn: AmqpDsn
+    amqp_dsn: AmqpDsn
     queue_name: str = Field(min_length=1)
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 class ConsumerSettings(ApiSettings):
