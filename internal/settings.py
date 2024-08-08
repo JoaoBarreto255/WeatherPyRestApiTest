@@ -1,6 +1,6 @@
 """Aplication settings"""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ApiSettings(BaseSettings):
@@ -8,6 +8,8 @@ class ApiSettings(BaseSettings):
     database_url: str = ""
     rabbitmq_url: str = ""
     queue_name: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 class ConsumerSettings(ApiSettings):
