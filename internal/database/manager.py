@@ -4,7 +4,7 @@ Manager module - manage all app async operations.
 
 from typing import Annotated, TypeVar
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from redis import asyncio as async_redis
 
 from internal.models import Base, User
@@ -46,7 +46,9 @@ class AsyncDbManager:
         Method find_registry - get item object from database
         """
         index = f"{model_class.table_name()}_{idx}"
-        result = await self.redis.hgetall(index)
+        if not (result := await self.redis.hgetall(index)):
+            raise HTTPException(404)
+
         result = {k.decode(): v.decode() for k, v in result.items()}
 
         return model_class(**result)
