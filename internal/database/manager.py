@@ -2,16 +2,18 @@
 Manager module - manage all app async operations.
 """
 
-from typing import Annotated, Sequence
+from typing import Annotated, TypeVar
 
 from fastapi import Depends
 from redis import asyncio as async_redis
 
-from internal.models import Base
+from internal.models import Base, User
 from internal.utils import build_singleton, make_async_decorator
 from internal.settings import ApiSettingsDI
 
 TABLE_DATA_ITEM_TOTAL_KEY = "item_total"
+
+M = TypeVar("M", Base, User)
 
 
 @build_singleton
@@ -31,6 +33,14 @@ class AsyncDbManager:
             return await self.insert_registry(registry)
 
         await self._pipeline_set_resgistry_fields(registry)
+
+    async def find_registry(self, model_class: M, idx: int) -> M:
+        index = f"{model_class.table_name()}_{idx}"
+        result = await self.redis.hgetall(index)
+        result = {k.decode(): v.decode() for k, v in result.items()}
+
+        return model_class(**result)
+
 
     async def _pipeline_set_resgistry_fields(self, registry: Base) -> None:
         reg_index = registry.db_index()

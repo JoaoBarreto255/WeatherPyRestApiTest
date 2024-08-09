@@ -13,5 +13,5 @@ async def create_user(user_repo: UserRepositoryDI) -> User:
 
 
 @USERS_ROUTER.get("/users/{user_id}")
-async def get_user(user_id: int):
-    return {"user_id": user_id}
+async def get_user(user_id: int, user_repo: UserRepositoryDI) -> User:
+    return await user_repo.get_user(user_id)
