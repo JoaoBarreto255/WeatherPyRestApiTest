@@ -1,47 +1,31 @@
 """Module for querie and save data"""
 
-from typing import Type, Optional, Annotated
+from datetime import datetime
+from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import select
 
 from internal.database.manager import AsyncDbManagerDI, AsyncDbManager
-from internal.database.schema import User, Data, AbstractAsyncEntity
+from internal.models import User
 
-class __BaseRepository:
-    """ common repository logic """
 
-    TYPE: Optional[Type[AbstractAsyncEntity]]  = None
+class BaseRepository:
+    """common repository logic"""
 
     def __init__(self, manager: AsyncDbManagerDI) -> None:
-        self.__database_manager = manager
+        self.database_manager = manager
 
-    @property
-    def database_manager(self) -> AsyncDbManager:
-        return self.__database_manager
-    
-    async def find_by_id(self, id: int):
-        assert self.TYPE is not None
-        async with self.database_manager.async_session.begin() as conn:
-            return await conn.execute(select(self.TYPE).where(self.TYPE.id == id).limit(1))
-        
-    async def create_entity(self, **kwargs):
-        assert self.TYPE is not None
-        classname = self.TYPE
-        item = classname(**kwargs)
 
-        async with self.database_manager.async_session.begin() as conn:
-            async with conn.begin():
-                conn.add(item)
-
-class UserRepository(__BaseRepository):
+class UserRepository(BaseRepository):
     """
-    User repository
+    Api User repository
     """
-    TYPE = User
 
     async def new_user(self) -> User:
-        return await self.create_entity()
+        user = User(created_at=datetime.now().isoformat())
+        await self.database_manager.insert_registry(user)
+
+        return user
 
 
 UserRepositoryDI = Annotated[UserRepository, Depends(UserRepository)]

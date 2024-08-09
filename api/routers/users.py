@@ -2,16 +2,14 @@
 
 from fastapi.routing import APIRouter
 from internal.database.repositories import UserRepositoryDI
-from internal.models import UserOutput
+from internal.models import User
 
 USERS_ROUTER = APIRouter()
 
 
 @USERS_ROUTER.post("/users", status_code=201)
-async def create_user(user_repo: UserRepositoryDI) -> UserOutput:
-    user = await user_repo.new_user()
-
-    return UserOutput(user.id, user.created_at)
+async def create_user(user_repo: UserRepositoryDI) -> User:
+    return await user_repo.new_user()
 
 
 @USERS_ROUTER.get("/users/{user_id}")

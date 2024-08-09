@@ -10,13 +10,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class ApiSettings(BaseSettings):
     app_env: str = "dev"
-    database_url: AnyUrl
+    redis_url: RedisDsn = Field(alias="REDIS_DSN")
     amqp_url: AmqpDsn = Field(alias="AMQP_DSN")
     queue_name: str = Field(min_length=1)
 
     @property
-    def database_dsn(self) -> str:
-        return str(self.database_url)
+    def redis_dsn(self) -> str:
+        dsn = self.redis_url
+        return f"{dsn.scheme}://{dsn.host}:{dsn.port}/{dsn.path}"
 
     @property
     def amqp_dsn(self) -> str:
@@ -28,7 +29,6 @@ class ApiSettings(BaseSettings):
 class ConsumerSettings(ApiSettings):
     weather_api_endpoint: AnyUrl
     weather_api_token: str = Field(min_length=1)
-    redis_dsn: RedisDsn
 
     @property
     def weather_api_dsn(self) -> str:
