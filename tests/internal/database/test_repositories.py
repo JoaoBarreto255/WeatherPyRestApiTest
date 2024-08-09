@@ -7,7 +7,7 @@ from pytest_mock.plugin import MockerFixture
 from internal.models import User
 from internal.database.manager import AsyncDbManager
 from internal.database.repositories import BaseRepository, UserRepository
-from tests.internal.database.manager import build_manager
+from tests.internal.database.test_manager import build_manager
 
 
 def test_user_repository_new_user(mocker: MockerFixture) -> None:
