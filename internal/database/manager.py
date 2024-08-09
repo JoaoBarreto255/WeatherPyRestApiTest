@@ -80,7 +80,7 @@ class AsyncDbManager:
             await pipe.hincrby(table_data_key, TABLE_DATA_ITEM_TOTAL_KEY)
             await pipe.unwatch()
 
-            return int(result)
+            return int(result) + 1
 
 
 AsyncDbManagerDI = Annotated[AsyncDbManager, Depends(AsyncDbManager)]
