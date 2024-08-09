@@ -30,16 +30,21 @@ class AsyncDbManager:
         self.redis = redis
 
     async def insert_registry(self, registry: Base) -> None:
+        """Method insert_registry - create object in database"""
         registry.index = await self._pipeline_create_resgistry_index(registry)
         await self._pipeline_set_resgistry_fields(registry)
 
     async def update_registry(self, registry: Base) -> None:
+        """Method update_registry - save object data in datababase"""
         if registry.index is None:
             return await self.insert_registry(registry)
 
         await self._pipeline_set_resgistry_fields(registry)
 
     async def find_registry(self, model_class: M, idx: int) -> M:
+        """
+        Method find_registry - get item object from database
+        """
         index = f"{model_class.table_name()}_{idx}"
         result = await self.redis.hgetall(index)
         result = {k.decode(): v.decode() for k, v in result.items()}
@@ -47,6 +52,9 @@ class AsyncDbManager:
         return model_class(**result)
 
     async def _pipeline_set_resgistry_fields(self, registry: Base) -> None:
+        """
+        Method _pipeline_set_resgistry_fields - save entity registry data to redis
+        """
         reg_index = registry.db_index()
         reg_dict = registry.model_dump()
         async with self.redis.pipeline() as pipe:
@@ -61,6 +69,9 @@ class AsyncDbManager:
             await pipe.unwatch()
 
     async def _pipeline_create_resgistry_index(self, registry: Base) -> int:
+        """
+        Method _pipeline_create_resgistry_index - Get new key for new item in database
+        """
         table_data_key = f"table_data:{registry.table_name()}"
         async with self.redis.pipeline() as pipe:
             # lock key
