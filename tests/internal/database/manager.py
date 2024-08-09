@@ -156,3 +156,26 @@ def test_find_registry(mocker: MockerFixture) -> None:
     redis.hgetall.return_value = {}
     with pytest.raises(HTTPException):
         asyncio.run(fail())
+
+
+def test_update_registry(mocker) -> None:
+    async def run_test(user: User):
+        manager, _, _ = build_manager(mocker, None)
+        await manager.update_registry(user)
+        assert True
+
+    asyncio.run(run_test(User(index=1, created_at="2024-02-02")))
+
+    with pytest.raises(HTTPException):
+        asyncio.run(run_test(User(created_at="2024-02-02")))
+
+
+def test_insert_registry(mocker) -> None:
+    async def run_test(user: User, expected: int, current_index: int | None = None):
+        manager, _, _ = build_manager(mocker, current_index)
+        await manager.insert_registry(user)
+        assert expected == user.index
+
+    asyncio.run(run_test(User(created_at="2012-09-08"), 1))
+    asyncio.run(run_test(User(created_at="2012-09-08"), 2, 1))
+    asyncio.run(run_test(User(created_at="2012-09-08"), 5, 4))
