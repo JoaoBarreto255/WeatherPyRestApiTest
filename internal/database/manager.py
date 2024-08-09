@@ -37,7 +37,7 @@ class AsyncDbManager:
     async def update_registry(self, registry: Base) -> None:
         """Method update_registry - save object data in datababase"""
         if registry.index is None:
-            return await self.insert_registry(registry)
+            raise HTTPException(400)
 
         await self._pipeline_set_resgistry_fields(registry)
 
@@ -87,8 +87,6 @@ class AsyncDbManager:
                 await pipe.unwatch()
 
                 return 1
-
-            assert isinstance(result, (str, bytes)), type(result)
 
             await pipe.hincrby(table_data_key, TABLE_DATA_ITEM_TOTAL_KEY)
             await pipe.unwatch()
