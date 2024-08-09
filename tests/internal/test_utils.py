@@ -1,4 +1,5 @@
 import asyncio
+import math
 import time
 
 import pytest
@@ -29,7 +30,7 @@ def test_make_async_decorator() -> None:
         start = time.time()
         time.sleep(sleep)
         delta = time.time() - start
-        assert sleep <= delta <= sleep + 0.2
+        assert math.isclose(sleep, delta, rel_tol=1e-2)
         return arg
 
     assert 1 == asyncio.run(test_async_fn(1, 0.5))

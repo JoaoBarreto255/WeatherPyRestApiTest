@@ -17,7 +17,7 @@ class ApiSettings(BaseSettings):
     @property
     def redis_dsn(self) -> str:
         dsn = self.redis_url
-        return f"{dsn.scheme}://{dsn.host}:{dsn.port}/{dsn.path}"
+        return f"{dsn.scheme}://{dsn.host}:{dsn.port}{dsn.path}"
 
     @property
     def amqp_dsn(self) -> str:
