@@ -16,13 +16,18 @@ TABLE_DATA_ITEM_TOTAL_KEY = "item_total"
 M = TypeVar("M", Base, User)
 
 
+def _redis_di_factory(settings: ApiSettingsDI) -> async_redis.Redis:
+    return async_redis.from_url(settings.redis_dsn)
+
+
 @build_singleton
 class AsyncDbManager:
     """Assincronous database manage - Deal with all assincronous database operation"""
 
-    def __init__(self, settings: ApiSettingsDI) -> None:
-        self.settings = settings
-        self.redis = async_redis.from_url(settings.redis_dsn)
+    def __init__(
+        self, redis: Annotated[async_redis.Redis, Depends(_redis_di_factory)]
+    ) -> None:
+        self.redis = redis
 
     async def insert_registry(self, registry: Base) -> None:
         registry.index = await self._pipeline_create_resgistry_index(registry)
@@ -41,7 +46,6 @@ class AsyncDbManager:
 
         return model_class(**result)
 
-
     async def _pipeline_set_resgistry_fields(self, registry: Base) -> None:
         reg_index = registry.db_index()
         reg_dict = registry.model_dump()
@@ -56,14 +60,16 @@ class AsyncDbManager:
 
             await pipe.unwatch()
 
-    async def _pipeline_create_resgistry_index(
-        self, registry: Base
-    ) -> int:
+    async def _pipeline_create_resgistry_index(self, registry: Base) -> int:
         table_data_key = f"table_data:{registry.table_name()}"
         async with self.redis.pipeline() as pipe:
             # lock key
             await pipe.watch(table_data_key)
-            if (result := await pipe.hget(table_data_key, TABLE_DATA_ITEM_TOTAL_KEY)) is None:
+            if (
+                result := await pipe.hget(
+                    table_data_key, TABLE_DATA_ITEM_TOTAL_KEY
+                )
+            ) is None:
                 await pipe.hset(table_data_key, TABLE_DATA_ITEM_TOTAL_KEY, 1)
                 await pipe.unwatch()
 
