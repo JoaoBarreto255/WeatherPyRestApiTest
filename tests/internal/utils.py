@@ -6,7 +6,6 @@ import pytest
 import internal.utils as utils
 
 
-
 def test_build_singleton() -> None:
     @utils.build_singleton
     class TestSingle:
@@ -23,6 +22,7 @@ def test_build_singleton() -> None:
     object_b.value = 3
     assert object_a.value == 3
 
+
 def test_make_async_decorator() -> None:
     @utils.make_async_decorator
     def test_async_fn(arg, sleep=1.0) -> None:
@@ -35,4 +35,3 @@ def test_make_async_decorator() -> None:
     assert 1 == asyncio.run(test_async_fn(1, 0.5))
 
     assert 2 == asyncio.run(test_async_fn(2, 2))
-    

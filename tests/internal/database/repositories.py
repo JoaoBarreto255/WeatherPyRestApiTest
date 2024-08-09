@@ -9,6 +9,7 @@ from internal.database.manager import AsyncDbManager
 from internal.database.repositories import BaseRepository, UserRepository
 from tests.internal.database.manager import build_manager
 
+
 def test_user_repository_new_user(mocker: MockerFixture) -> None:
     async def test_new_user(manager, expected: int) -> None:
         repo = UserRepository(manager)
@@ -34,13 +35,14 @@ def test_user_repository_get_user(mocker: MockerFixture) -> None:
 
     manager, redis, _ = build_manager(mocker, None)
     redis.hgetall = mocker.AsyncMock()
-    redis.hgetall.return_value = {b'index': b'1', b'created_at': b'2012-01-01'}
- 
+    redis.hgetall.return_value = {b"index": b"1", b"created_at": b"2012-01-01"}
+
     asyncio.run(test_get_user(manager, 1))
 
     redis.hgetall.return_value = None
     with pytest.raises(HTTPException):
         asyncio.run(test_get_user(manager, 5))
+
 
 def test_base_repository(mocker) -> None:
     manager, _, _ = build_manager(mocker, None)

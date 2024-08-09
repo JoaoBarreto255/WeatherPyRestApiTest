@@ -126,6 +126,7 @@ def test__pipeline_set_resgistry_fields(mocker: MockerFixture):
         )
     )
 
+
 def test_find_registry(mocker: MockerFixture) -> None:
     redis = mocker.MagicMock()
     redis.hgetall = mocker.AsyncMock()
@@ -148,7 +149,7 @@ def test_find_registry(mocker: MockerFixture) -> None:
 
     async def fail():
         await manager.find_registry(User, 1)
-    
+
     redis.hgetall.return_value = None
     with pytest.raises(HTTPException):
         asyncio.run(fail())
@@ -171,7 +172,9 @@ def test_update_registry(mocker) -> None:
 
 
 def test_insert_registry(mocker) -> None:
-    async def run_test(user: User, expected: int, current_index: int | None = None):
+    async def run_test(
+        user: User, expected: int, current_index: int | None = None
+    ):
         manager, _, _ = build_manager(mocker, current_index)
         await manager.insert_registry(user)
         assert expected == user.index
