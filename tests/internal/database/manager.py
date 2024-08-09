@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-import pytest_mock
 from pytest_mock.plugin import MockerFixture
 from redis.asyncio import Redis
 
@@ -35,18 +34,24 @@ def build_pipe_mock(mocker: MockerFixture, hget_return=None):
     return pipe
 
 
+def build_manager(mocker, curr):
+    pipe = build_pipe_mock(mocker, curr)
+    redis = mocker.MagicMock()
+    redis.pipeline.return_value = pipe
+
+    manager = AsyncDbManager(redis)
+    manager.redis = redis  # fix singleton issue
+
+    return manager, redis, pipe
+
+
 def test_pipeline_create_resgistry_index(
     mocker: MockerFixture,
 ):
     """Test for generate new index for entity registry"""
 
     async def test(expected, curr):
-        pipe = build_pipe_mock(mocker, curr)
-        redis = mocker.MagicMock()
-        redis.pipeline.return_value = pipe
-
-        manager = AsyncDbManager(redis)
-        manager.redis = redis  # fix singleton issue
+        manager, redis, pipe = build_manager(mocker, curr)
         result = await manager._pipeline_create_resgistry_index(
             User(created_at="2024-02-01")
         )
@@ -77,3 +82,46 @@ def test_pipeline_create_resgistry_index(
     asyncio.run(test(3, b"2"))
     asyncio.run(test(4, b"3"))
     asyncio.run(test(5, b"4"))
+
+
+def test__pipeline_set_resgistry_fields(mocker: MockerFixture):
+    async def test_case(user: User, **kwargs):
+        manager, redis, pipe = build_manager(mocker, None)
+        await manager._pipeline_set_resgistry_fields(user)
+        pipe.watch.assert_called_once()
+        pipe.watch.assert_awaited_with(user_index := user.db_index())
+        pipe.unwatch.assert_called_once()
+        pipe.hincrby.assert_not_called()
+        pipe.hget.assert_not_called()
+        for key, value in kwargs.items():
+            pipe.hset.assert_any_call(user_index, key, value)
+
+    asyncio.run(
+        test_case(
+            User(index=1, created_at="2024-02-02"),
+            index=1,
+            created_at="2024-02-02",
+        )
+    )
+    asyncio.run(
+        test_case(
+            User(index=1, created_at="2024-02-02", requested_at="2024-02-03"),
+            index=1,
+            created_at="2024-02-02",
+            requested_at="2024-02-03",
+        )
+    )
+    asyncio.run(
+        test_case(
+            User(
+                index=1,
+                created_at="2024-02-02",
+                requested_at="2024-02-03",
+                processed_at="2024-08-09",
+            ),
+            index=1,
+            created_at="2024-02-02",
+            requested_at="2024-02-03",
+            processed_at="2024-08-09",
+        )
+    )

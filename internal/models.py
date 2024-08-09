@@ -30,7 +30,7 @@ class ModelTableNameFactory:
 class Base(BaseModel):
     """Base from all models used by api"""
 
-    index: int | None = Field(None, gt=1)
+    index: int | None = Field(None, gte=1)
 
     @classmethod
     def table_name(cls) -> str:
