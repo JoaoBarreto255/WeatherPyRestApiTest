@@ -22,7 +22,7 @@ def test_build_singleton() -> None:
     object_b.value = 3
     assert object_a.value == 3
 
-
+@pytest.mark.long
 def test_make_async_decorator() -> None:
     @utils.make_async_decorator
     def test_async_fn(arg, sleep=1.0) -> None:
