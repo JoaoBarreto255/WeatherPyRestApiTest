@@ -1,8 +1,8 @@
 import asyncio
 
+from fastapi import HTTPException
 import pytest
 from pytest_mock.plugin import MockerFixture
-from redis.asyncio import Redis
 
 from internal.database.manager import AsyncDbManager, TABLE_DATA_ITEM_TOTAL_KEY
 from internal.models import User
@@ -125,3 +125,34 @@ def test__pipeline_set_resgistry_fields(mocker: MockerFixture):
             processed_at="2024-08-09",
         )
     )
+
+def test_find_registry(mocker: MockerFixture) -> None:
+    redis = mocker.MagicMock()
+    redis.hgetall = mocker.AsyncMock()
+    manager = AsyncDbManager(redis)
+    manager.redis = redis
+
+    redis.hgetall.return_value = {b"index": b"1", b"created_at": b"2024-02-02"}
+
+    async def success():
+        result = await manager.find_registry(User, 1)
+        redis.hgetall.assert_called_once()
+        redis.hgetall.assert_awaited_with(f"{User.table_name()}_1")
+        assert isinstance(result, User)
+        assert 1 == result.index
+        assert "2024-02-02" == result.created_at
+        assert result.processed_at is None
+        assert result.requested_at is None
+
+    asyncio.run(success())
+
+    async def fail():
+        await manager.find_registry(User, 1)
+    
+    redis.hgetall.return_value = None
+    with pytest.raises(HTTPException):
+        asyncio.run(fail())
+
+    redis.hgetall.return_value = {}
+    with pytest.raises(HTTPException):
+        asyncio.run(fail())
