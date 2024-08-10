@@ -32,5 +32,9 @@ class UserRepository(BaseRepository):
         """Fecth user data"""
         return await self.database_manager.find_registry(User, index)
 
+    async def remove_all_users(self) -> None:
+        """Clear all users saved in database"""
+        return await self.database_manager.clear_model_registries(User)
+
 
 UserRepositoryDI = Annotated[UserRepository, Depends(UserRepository)]

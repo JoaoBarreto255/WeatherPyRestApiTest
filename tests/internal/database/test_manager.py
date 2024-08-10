@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import HTTPException
 import pytest
-from pytest_mock.plugin import MockerFixture
+from pytest_mock.plugin import MockerFixture, MockType
 
 from internal.database.manager import AsyncDbManager, TABLE_DATA_ITEM_TOTAL_KEY
 from internal.models import User
@@ -34,7 +34,9 @@ def build_pipe_mock(mocker: MockerFixture, hget_return=None):
     return pipe
 
 
-def build_manager(mocker, curr):
+def build_manager(
+    mocker, curr=None
+) -> tuple[AsyncDbManager, MockType, MockType]:
     pipe = build_pipe_mock(mocker, curr)
     redis = mocker.MagicMock()
     redis.pipeline.return_value = pipe
@@ -86,7 +88,7 @@ def test_pipeline_create_resgistry_index(
 
 def test__pipeline_set_resgistry_fields(mocker: MockerFixture):
     async def test_case(user: User, **kwargs):
-        manager, redis, pipe = build_manager(mocker, None)
+        manager, _, pipe = build_manager(mocker)
         await manager._pipeline_set_resgistry_fields(user)
         pipe.watch.assert_called_once()
         pipe.watch.assert_awaited_with(user_index := user.db_index())
@@ -161,7 +163,7 @@ def test_find_registry(mocker: MockerFixture) -> None:
 
 def test_update_registry(mocker) -> None:
     async def run_test(user: User):
-        manager, _, _ = build_manager(mocker, None)
+        manager, _, _ = build_manager(mocker)
         await manager.update_registry(user)
         assert True
 
@@ -182,3 +184,49 @@ def test_insert_registry(mocker) -> None:
     asyncio.run(run_test(User(created_at="2012-09-08"), 1))
     asyncio.run(run_test(User(created_at="2012-09-08"), 2, 1))
     asyncio.run(run_test(User(created_at="2012-09-08"), 5, 4))
+
+
+TEST_SAMPLES = [
+    "d086a6311049b1873e2ad839a961de50_1",
+    "d086a6311049b1873e2ad839a961de50_2",
+    "d086a6311049b1873e2ad839a961de50_3",
+]
+
+
+def test_registry_index_factory(mocker) -> None:
+    manager, _, _ = build_manager(mocker)
+
+    assert TEST_SAMPLES[-1] == manager._registry_index_factory(User, 3)
+
+
+def test_remove_registries(mocker) -> None:
+    manager, redis, _ = build_manager(mocker)
+    redis.delete = mocker.AsyncMock()
+    redis.delete.return_value = None
+
+    async def test():
+        await manager.remove_registries(User, 1, 2, 3)
+        redis.pipeline.assert_not_called()
+        redis.delete.assert_called_once()
+        redis.delete.assert_awaited_with(*TEST_SAMPLES)
+
+    asyncio.run(test())
+
+
+def test_clear_model_registries(mocker) -> None:
+    manager, redis, _ = build_manager(mocker)
+    redis.delete = mocker.AsyncMock()
+    redis.delete.return_value = None
+
+    redis.hget = mocker.AsyncMock()
+    redis.hget.return_value = 3
+
+    async def test():
+        await manager.clear_model_registries(User, 2)
+        redis.hget.assert_called_once()
+        redis.hget.assert_awaited_with(EXPECTED_KEY, TABLE_DATA_ITEM_TOTAL_KEY)
+        redis.delete.assert_any_call(*TEST_SAMPLES[:2])
+        redis.delete.assert_any_call(TEST_SAMPLES[-1])
+        redis.delete.assert_any_call(EXPECTED_KEY)
+
+    asyncio.run(test())

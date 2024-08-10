@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException
 from redis import asyncio as async_redis
 
 from internal.models import Base, User
-from internal.utils import build_singleton, make_async_decorator
+from internal.utils import build_singleton, chunk_stream
 from internal.settings import ApiSettingsDI
 
 TABLE_DATA_ITEM_TOTAL_KEY = "item_total"
@@ -92,6 +92,37 @@ class AsyncDbManager:
             await pipe.unwatch()
 
             return int(result) + 1
+
+    async def clear_model_registries(
+        self, model: M, batch_size: int = 10
+    ) -> None:
+        """remove all registries from specified model. obs.: Only DEV"""
+        if not isinstance(batch_size, int) or batch_size < 2:
+            batch_size = 10
+
+        table_size = await self.redis.hget(
+            f"table_data:{model.table_name()}", TABLE_DATA_ITEM_TOTAL_KEY
+        )
+        for chunk in chunk_stream(range(1, table_size + 1), batch_size):
+            await self.remove_registries(model, *chunk)
+
+        await self.redis.delete(f"table_data:{model.table_name()}")
+
+    async def remove_registries(self, model: M, *indexes: int) -> None:
+        """remove one or more registries by index"""
+
+        FINAL_INDEXES = [
+            self._registry_index_factory(model, idx) for idx in indexes
+        ]
+        if len(FINAL_INDEXES) == 0:
+            return
+
+        await self.redis.delete(*FINAL_INDEXES)
+
+    def _registry_index_factory(self, model: M, index: int) -> str:
+        """build index for entities"""
+
+        return f"{model.table_name()}_{index}"
 
 
 AsyncDbManagerDI = Annotated[AsyncDbManager, Depends(AsyncDbManager)]
