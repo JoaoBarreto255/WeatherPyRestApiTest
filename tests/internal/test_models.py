@@ -27,6 +27,7 @@ def test_model_table_name_factory__call__() -> None:
     """
 
     factory = ModelTableNameFactory()
+
     class TestName:
         pass
 
@@ -34,7 +35,6 @@ def test_model_table_name_factory__call__() -> None:
     CLASSNAME_HASH = factory._ModelTableNameFactory__digest_name(CLASSNAME)
     assert CLASSNAME_HASH == factory(TestName)
     assert CLASSNAME_HASH == factory(TestName())
-
 
 
 def test_base_table_name() -> None:
@@ -56,4 +56,3 @@ def test_base_db_index() -> None:
     assert f"{BASE_HASH}_0" == Base().db_index()
     assert f"{BASE_HASH}_1" == Base(index=1).db_index()
     assert f"{BASE_HASH}_100" == Base(index=100).db_index()
-
