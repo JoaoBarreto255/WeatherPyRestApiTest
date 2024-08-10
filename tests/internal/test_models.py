@@ -1,6 +1,8 @@
+from datetime import datetime
+
 import pytest
 
-from internal.models import ModelTableNameFactory, Base
+from internal.models import ModelTableNameFactory, Base, UserCityData
 
 
 def test_model_table_name_factory__digest_name() -> None:
@@ -56,3 +58,18 @@ def test_base_db_index() -> None:
     assert f"{BASE_HASH}_0" == Base().db_index()
     assert f"{BASE_HASH}_1" == Base(index=1).db_index()
     assert f"{BASE_HASH}_100" == Base(index=100).db_index()
+
+
+def test_user_city_class_method_build_from() -> None:
+    date = datetime.now().isoformat()
+    result = UserCityData.build_from(1, {"hello": "world!"})
+
+    assert result.user_id == 1
+    assert result.request_time > date
+    assert result.data == '{"hello": "world!"}'
+
+def test_user_city_property_payload() -> None:
+    result = UserCityData.build_from(1, {"hello": "world!"})
+    assert result.payload is not None
+    assert isinstance(result.payload, dict)
+    assert result.payload == {"hello": "world!"}

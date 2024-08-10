@@ -1,7 +1,9 @@
 """Api output models"""
 
-import hashlib
 import functools
+import hashlib
+import json
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +44,25 @@ class Base(BaseModel):
 
 
 class User(Base):
-    created_at: str
+    created_at: str = Field(min_length=10)
     requested_at: str | None = Field(None, min_length=1)
     processed_at: str | None = Field(None, min_length=1)
+    processed: int = Field(0, json_schema_extra={"minimun": 0})
+
+
+class UserCityData(Base):
+    user_id: int = Field(json_schema_extra={"minimun": 1})
+    request_time: str = Field(min_length=10)
+    data: str = Field(min_length=2)
+
+    @classmethod
+    def build_from(cls, user_id: int, payload: dict):
+        return cls(
+            user_id=user_id,
+            request_time=datetime.now().isoformat(),
+            data=json.dumps(payload),
+        )
+
+    @property
+    def payload(self) -> dict:
+        return json.loads(self.data)
