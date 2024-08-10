@@ -66,3 +66,8 @@ class UserCityData(Base):
     @property
     def payload(self) -> dict:
         return json.loads(self.data)
+    
+class CityInfo(Base):
+    """Store info to retrieve api data"""
+
+    api_id: int = Field(json_schema_extra={"minimun": 1})
