@@ -103,7 +103,7 @@ class AsyncDbManager:
         table_size = await self.redis.hget(
             f"table_data:{model.table_name()}", TABLE_DATA_ITEM_TOTAL_KEY
         )
-        for chunk in chunk_stream(range(1, table_size + 1), batch_size):
+        for chunk in chunk_stream(range(1, int(table_size) + 1), batch_size):
             await self.remove_registries(model, *chunk)
 
         await self.redis.delete(f"table_data:{model.table_name()}")
