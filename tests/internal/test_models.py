@@ -68,6 +68,7 @@ def test_user_city_class_method_build_from() -> None:
     assert result.request_time > date
     assert result.data == '{"hello": "world!"}'
 
+
 def test_user_city_property_payload() -> None:
     result = UserCityData.build_from(1, {"hello": "world!"})
     assert result.payload is not None
