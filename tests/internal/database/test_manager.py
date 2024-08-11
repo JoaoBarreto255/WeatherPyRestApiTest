@@ -5,7 +5,7 @@ import pytest
 from pytest_mock.plugin import MockerFixture, MockType
 
 from internal.database.manager import AsyncDbManager, TABLE_DATA_ITEM_TOTAL_KEY
-from internal.models import User
+from internal.models import User, CityInfo
 
 EXPECTED_KEY = f"table_data:{User.table_name()}"
 
@@ -256,3 +256,55 @@ def test_obtain_model_registries_count(mocker: MockerFixture) -> None:
     asyncio.run(do_test(manager, 0))
     asyncio.run(do_test(manager, 1))
     asyncio.run(do_test(manager, 10))
+
+
+def test_find_all_by_field_from_model(mocker: MockerFixture) -> None:
+    CITY_SAMPLE = [
+        b"cc892e3dce60ca4f111553f60ad1ec30_1",
+        b"cc892e3dce60ca4f111553f60ad1ec30_2",
+        b"cc892e3dce60ca4f111553f60ad1ec30_3",
+    ]
+
+    redis = mocker.MagicMock()
+    redis.hgetall = mocker.AsyncMock()
+    redis.hgetall.return_value = {b"index": b"2", b"api_id": b"10"}
+
+    async def filter_type(key: bytes) -> bytes:
+        filter_type.counter += 1
+        return b"hash" if key != CITY_SAMPLE[0] else b"list"
+
+    filter_type.counter = 0
+    redis.type = filter_type
+
+    async def get_t(key, field):
+        get_t.counter += 1
+        if field == "api_id" and key == "cc892e3dce60ca4f111553f60ad1ec30_2":
+            return b"10"
+
+        return b"2"
+
+    get_t.counter = 0
+
+    redis.hget = get_t
+
+    async def scan_iter(arg):
+        nonlocal CITY_SAMPLE
+        assert "cc892e3dce60ca4f111553f60ad1ec30_*" == arg
+        for c in CITY_SAMPLE:
+            yield c
+
+    redis.scan_iter = scan_iter
+    manager = AsyncDbManager(redis)
+    manager.redis = redis
+
+    async def do_test():
+        result = await manager.find_all_by_field(CityInfo, "api_id", "10")
+        assert filter_type.counter == 3
+        assert get_t.counter == 2
+        redis.hgetall.assert_called_once()
+        redis.hgetall.assert_awaited_with("cc892e3dce60ca4f111553f60ad1ec30_2")
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], CityInfo)
+
+    asyncio.run(do_test())

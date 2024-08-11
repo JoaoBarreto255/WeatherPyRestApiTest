@@ -2,7 +2,7 @@
 Manager module - manage all app async operations.
 """
 
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, Self
 
 from fastapi import Depends, HTTPException
 from redis import asyncio as async_redis
@@ -45,13 +45,18 @@ class AsyncDbManager:
         """
         Method find_registry - get item object from database
         """
-        index = f"{model_class.table_name()}_{idx}"
-        if not (result := await self.redis.hgetall(index)):
-            raise HTTPException(404)
-
-        result = {k.decode(): v.decode() for k, v in result.items()}
+        result = await self._fetch_registry_by_key(
+            f"{model_class.table_name()}_{idx}"
+        )
 
         return model_class(**result)
+
+    async def _fetch_registry_by_key(self, key: str) -> dict[str, str]:
+        """Fetch set by key given"""
+        if not (result := await self.redis.hgetall(key)):
+            raise HTTPException(404)
+
+        return {k.decode(): v.decode() for k, v in result.items()}
 
     async def _pipeline_set_resgistry_fields(self, registry: Base) -> None:
         """
@@ -128,7 +133,19 @@ class AsyncDbManager:
         self, model: M, field_name: str, value: str
     ) -> list[M]:
         """Search all registries by field value from entity"""
-        raise NotImplementedError
+        result = []
+        async for key in self.redis.scan_iter(f"{model.table_name()}_*"):
+            if await self.redis.type(key) != b"hash":
+                continue
+
+            if (
+                await self.redis.hget(key := key.decode(), field_name)
+                != str(value).encode()
+            ):
+                continue
+            result.append(model(**await self._fetch_registry_by_key(key)))
+
+        return result
 
     async def model_total_registries(self, model: M) -> int:
         """Total quantity of registries from model in db"""
