@@ -5,7 +5,11 @@ from datetime import datetime
 from fastapi import Response, status, HTTPException
 from fastapi.routing import APIRouter
 
-from internal.database.repositories import UserRepositoryDI
+from internal.database.repositories import (
+    CityInfoRepositoryDI,
+    UserRepositoryDI,
+    UserCityDataRepositoryDI,
+)
 from internal.queue_manager import QueueManagerDI
 from internal.models import UserCityData
 
@@ -29,19 +33,24 @@ async def request_start_process_cities(
 async def monitore_request_processed_percentage(
     user_id: int,
     user_repo: UserRepositoryDI,
+    city_info_repo: CityInfoRepositoryDI,
 ) -> str:
     """Check user request process status."""
 
+    if (TOTAL_OF_CITIES := await city_info_repo.total_of_cities()) <= 0:
+        return f"0.00"
+
     USER = await user_repo.get_user(user_id)
-    # TOTAL_OF_CITIES = await
-    USER_PERCENTAGE = 10.0
+    USER_PERCENTAGE = (USER.processed or 0) / TOTAL_OF_CITIES
 
     return f"{USER_PERCENTAGE:f.2}"
 
 
 @CITIES_ROUTER.get("/{user_id}/result")
 async def get_user_citie_request(
-    user_id: int, user_repo: UserRepositoryDI
+    user_id: int,
+    user_repo: UserRepositoryDI,
+    user_city_data: UserCityDataRepositoryDI,
 ) -> list[UserCityData]:
     """Check user request process status."""
 
@@ -49,4 +58,4 @@ async def get_user_citie_request(
     if USER.processed_at is None:
         raise HTTPException(status.HTTP_425_TOO_EARLY)
 
-    return []
+    return await user_city_data.get_all_user_city_data(USER)
