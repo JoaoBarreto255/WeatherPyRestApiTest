@@ -124,5 +124,21 @@ class AsyncDbManager:
 
         return f"{model.table_name()}_{index}"
 
+    async def find_all_by_field(
+        self, model: M, field_name: str, value: str
+    ) -> list[M]:
+        """Search all registries by field value from entity"""
+        raise NotImplementedError
+
+    async def model_total_registries(self, model: M) -> int:
+        """Total quantity of registries from model in db"""
+
+        return int(
+            await self.redis.hget(
+                f"table_data:{model.table_name()}", TABLE_DATA_ITEM_TOTAL_KEY
+            )
+            or 0
+        )
+
 
 AsyncDbManagerDI = Annotated[AsyncDbManager, Depends(AsyncDbManager)]

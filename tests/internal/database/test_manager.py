@@ -230,3 +230,29 @@ def test_clear_model_registries(mocker) -> None:
         redis.delete.assert_any_call(EXPECTED_KEY)
 
     asyncio.run(test())
+
+
+def test_obtain_model_registries_count(mocker: MockerFixture) -> None:
+    redis = mocker.MagicMock()
+    manager = AsyncDbManager(redis)
+
+    async def do_test(manager: AsyncDbManager, expected: int | None):
+        manager.redis.hget = mocker.AsyncMock()
+        manager.redis.hget.return_value = (
+            None if expected is None else str(expected).encode()
+        )
+        result = await manager.model_total_registries(User)
+        manager.redis.hget.assert_called_once()
+        manager.redis.hget.assert_awaited_with(
+            EXPECTED_KEY, TABLE_DATA_ITEM_TOTAL_KEY
+        )
+        if expected is None:
+            assert result == 0
+            return
+
+        assert result == expected
+
+    asyncio.run(do_test(manager, None))
+    asyncio.run(do_test(manager, 0))
+    asyncio.run(do_test(manager, 1))
+    asyncio.run(do_test(manager, 10))
