@@ -8,7 +8,7 @@ from internal.models import User
 USERS_ROUTER = APIRouter()
 
 
-@USERS_ROUTER.post("/users", status_code=201)
+@USERS_ROUTER.post("/login", status_code=201)
 async def create_user(user_repo: UserRepositoryDI) -> User:
     return await user_repo.new_user()
 

@@ -3,7 +3,6 @@ Module for dealing if queue
 """
 
 import asyncio
-import functools
 import json
 from typing import Annotated, Awaitable, Callable
 
@@ -83,3 +82,6 @@ class QueueManager:
             await func(User(**json.loads(income)))
 
         await self.connection.process_message(USER_QUEUE, wrapper)
+
+
+QueueManagerDI = Annotated[QueueManager, Depends(QueueManager)]
