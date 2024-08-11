@@ -34,7 +34,12 @@ class UserRepository(BaseRepository):
 
     async def remove_all_users(self) -> None:
         """Clear all users saved in database"""
-        return await self.database_manager.clear_model_registries(User)
+        await self.database_manager.clear_model_registries(User)
+    
+    async def update_user(self, user: User) -> None:
+        """Update user"""
+
+        await self.database_manager.update_registry(User, user)
 
 
 UserRepositoryDI = Annotated[UserRepository, Depends(UserRepository)]
