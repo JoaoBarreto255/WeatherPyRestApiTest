@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import Annotated
 
+import click
 from fastapi import Depends
 
 from internal.settings import _api_settings_builder
@@ -88,10 +89,16 @@ async def base_startup():
     redis = _redis_di_factory(_api_settings_builder())
     manager = AsyncDbManager(redis)
     repo = CityInfoRepository(manager)
-    if await repo.total_of_cities() == 0:
+    if await repo.total_of_cities() != 0:
+        click.echo(f'Fixtures already loaded {click.style('...', fg="green")}')
+        click.echo("Nothing to do!")
+
         return
     with open("config/city_list/sample.json") as f:
-        await repo.new_cities(json.load(f))
+        click.echo(f"Loading fixture data {click.style('...', fg="green")}")
+        data = json.load(f)
+        click.echo(f"Saving data in database {click.style('...', fg="green")}")
+        await repo.new_cities(*data)
 
 
 CityInfoRepositoryDI = Annotated[
