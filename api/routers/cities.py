@@ -34,16 +34,17 @@ async def monitore_request_processed_percentage(
     user_id: int,
     user_repo: UserRepositoryDI,
     city_info_repo: CityInfoRepositoryDI,
-) -> str:
+) -> int:
     """Check user request process status."""
 
     if (TOTAL_OF_CITIES := await city_info_repo.total_of_cities()) <= 0:
-        return f"0.00"
+        return 0
 
     USER = await user_repo.get_user(user_id)
-    USER_PERCENTAGE = (USER.processed or 0) / TOTAL_OF_CITIES
+    if not USER.processed:
+        return 0
 
-    return f"{USER_PERCENTAGE:f.2}"
+    return int((USER.processed / TOTAL_OF_CITIES) * 100.0)
 
 
 @CITIES_ROUTER.get("/{user_id}/result")
