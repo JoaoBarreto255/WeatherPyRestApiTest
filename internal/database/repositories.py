@@ -1,11 +1,17 @@
 """Module for querie and save data"""
 
+import json
 from datetime import datetime
 from typing import Annotated
 
 from fastapi import Depends
 
-from internal.database.manager import AsyncDbManagerDI, AsyncDbManager
+from internal.settings import _api_settings_builder
+from internal.database.manager import (
+    AsyncDbManagerDI,
+    AsyncDbManager,
+    _redis_di_factory,
+)
 from internal.models import User, UserCityData, CityInfo, Base
 
 
@@ -76,6 +82,16 @@ class CityInfoRepository(BaseRepository):
         """Total of cities in database"""
 
         return await self.database_manager.model_total_registries(CityInfo)
+
+
+async def base_startup():
+    redis = _redis_di_factory(_api_settings_builder())
+    manager = AsyncDbManager(redis)
+    repo = CityInfoRepository(manager)
+    if await repo.total_of_cities() == 0:
+        return
+    with open("config/city_list/sample.json") as f:
+        await repo.new_cities(json.load(f))
 
 
 CityInfoRepositoryDI = Annotated[
